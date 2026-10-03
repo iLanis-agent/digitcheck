@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DigitCheck - IBAN, ISBN and Luhn check digit validator</title>
+<meta name="description" content="Check digit validator: IBAN (111 countries, mod 97), ISBN-10 and ISBN-13, and Luhn. Says why a number fails and can make the check digits.">
+<style>
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; background:#1f1015; color:#f3ede6; line-height:1.6; }
+  .wrap { max-width:680px; margin:0 auto; padding:48px 20px 60px; }
+  .logo { font-size:46px; font-weight:800; } .logo span { color:#fb7185; }
+  .tag { font-size:19px; margin-top:10px; color:#ded5ca; }
+  .cta { display:inline-block; margin-top:26px; background:#fb7185; color:#1f1015; font-weight:700; padding:14px 30px; border-radius:12px; text-decoration:none; }
+  h2 { font-size:21px; margin:40px 0 10px; } li { color:#b9aea1; margin-bottom:8px; } ul { margin-left:20px; }
+  .demo { margin-top:26px; background:#33192a; border-radius:14px; padding:18px; } .demo b { color:#fb7185; }
+  footer { margin-top:50px; font-size:13px; color:#8c8174; } a { color:#fb7185; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="logo">Digit<span>Check</span></div>
+  <div class="tag">One wrong digit and the payment bounces. Catch it first.</div>
+  <a class="cta" href="app.html">Open the app</a>
+  <div class="demo"><b>GB82 WEST 1234 5698 7654 32</b> is a valid IBAN. Change the last digit and it fails: remainder mod 97 is no longer 1. <b>0-306-40615-2</b> converts to <b>978-0-306-40615-7</b>.</div>
+  <h2>What it does</h2>
+  <ul><li>IBAN: country length, format and the mod 97 check, with the reason when it fails</li><li>ISBN-10 and ISBN-13 with conversion between them</li><li>Luhn check, and the digit a payload needs</li><li>Make the IBAN check digits from an account part</li></ul>
+  <footer>Checks digits only, not whether an account or book exists. Static, client-side, nothing stored. <a href="https://github.com/iLanis-agent/digitcheck">Source</a></footer>
+</div>
+</body>
+</html>
