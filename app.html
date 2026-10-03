@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DigitCheck - IBAN, ISBN and Luhn check digit validator</title>
+<style>
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; background:#1f1015; color:#f3ede6; line-height:1.5; }
+  .wrap { max-width:700px; margin:0 auto; padding:26px 16px 50px; }
+  h1 { font-size:28px; } h1 span { color:#fb7185; }
+  .sub { color:#b5aa9c; margin:6px 0 16px; }
+  .card { background:#33192a; border-radius:14px; padding:14px; margin-bottom:12px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px; }
+  label { font-size:12px; color:#b5aa9c; display:block; margin-bottom:3px; }
+  input,select { width:100%; background:#1f1015; color:#f3ede6; border:1px solid #574f48; border-radius:8px; padding:8px; font-size:15px; font-family:inherit; }
+  button { background:#8a2a47; color:#f3ede6; border:0; padding:8px 14px; border-radius:8px; cursor:pointer; font-size:14px; margin-right:6px; margin-top:10px; }
+  table { width:100%; border-collapse:collapse; } td,th { text-align:left; padding:8px 4px; border-bottom:1px solid #433c36; } th { font-size:12px; color:#b5aa9c; font-weight:600; }
+  td.v { font-size:22px; font-weight:800; color:#fb7185; } tr.me td.v { color:#f3ede6; }
+  .stats { display:flex; gap:22px; flex-wrap:wrap; margin-top:12px; } .stats b { display:block; font-size:20px; } .muted { color:#b5aa9c; font-size:13px; }
+  .err { color:#ff9c8a; } .note { font-size:12.5px; color:#8c8174; margin-top:6px; }
+
+  td.v { font-size:17px; } td, th { font-size:14px; } .bar { height:10px; background:#1f1015; border-radius:6px; overflow:hidden; margin-top:6px; } .bar i { display:block; height:100%; background:#fb7185; } .bar i.over { background:#ff7b72; } .no { color:#ff9c8a; }
+  .cb { display:inline-flex; align-items:center; gap:4px; margin-right:12px; font-size:14px; color:#f3ede6; } .cb input { width:auto; } .big { font-family:monospace; font-size:26px; font-weight:800; color:#fb7185; } td.v.m { font-family:monospace; }
+  textarea { width:100%; background:#1f1015; color:#f3ede6; border:1px solid #574f48; border-radius:8px; padding:8px; font-size:14px; font-family:monospace; min-height:110px; } .ok { color:#86efac; font-weight:700; } .no { color:#ff9c8a; } td.m { font-family:monospace; } .chip { display:inline-block; font-family:monospace; background:#1f1015; border-radius:6px; padding:2px 6px; margin:2px 4px 2px 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Digit<span>Check</span></h1>
+  <div class="sub">Paste an IBAN, an ISBN or a Luhn number. It tells you if the check digits add up, and where it goes wrong if they do not.</div>
+  <div class="card">
+    <label>Number</label>
+    <input id="in" value="GB82 WEST 1234 5698 7654 32" style="font-family:monospace" autocomplete="off" spellcheck="false">
+    <div class="grid" style="margin-top:8px"><div><label>Type</label><select id="kind"><option value="auto">Detect</option><option value="iban">IBAN</option><option value="isbn">ISBN</option><option value="luhn">Luhn</option></select></div></div>
+    <button id="p1">IBAN</button><button id="p2">IBAN, one digit off</button><button id="p3">ISBN-10</button><button id="p4">ISBN-13</button><button id="p5">Luhn</button><button id="p6">Luhn, wrong</button>
+    <div id="res" style="margin-top:12px"></div>
+  </div>
+  <div class="card">
+    <h2 style="margin:0 0 8px;font-size:15px">Make the check digits</h2>
+    <div class="grid">
+      <div><label>IBAN country</label><select id="cc"></select></div>
+      <div><label>Account part (the rest after the 4 starting characters)</label><input id="bban" value="WEST12345698765432" style="font-family:monospace"></div>
+    </div>
+    <div id="mk" style="margin-top:8px"></div>
+    <div class="grid" style="margin-top:12px">
+      <div><label>Payload for a Luhn digit</label><input id="pay" value="1789372997" style="font-family:monospace"></div>
+      <div><label>First 9 or 12 digits of an ISBN</label><input id="nine" value="030640615" style="font-family:monospace"></div>
+    </div>
+    <div id="mk2" style="margin-top:8px"></div>
+  </div>
+  <div class="note">What this proves: the check digits are consistent, so a typo is very likely caught. It does not prove that an account exists, that a book was ever printed, or that a card number is real. IBAN: country length and character format from the table on the Wikipedia IBAN page (111 countries, transcribed at the time of writing; some countries use national check digits inside the account part that are not checked here), then the ISO 13616 mod 97 test (move the first four characters to the end, letters become 10 to 35, remainder must be 1). ISBN-10: digits weighted 10 down to 1, sum divisible by 11, X means 10. ISBN-13: weights alternate 1 and 3, sum divisible by 10. Luhn (ISO/IEC 7812-1): double every second digit from the right of the payload, subtract 9 from results above 9, sum divisible by 10. Do not paste real card numbers or account numbers into any page you do not trust; this one runs in your browser and stores nothing.</div>
+</div>
+<script src="engine.js"></script>
+<script>
+(function () {
+  var D = window.DigitCheck, $ = function (i) { return document.getElementById(i); };
+  function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
+  var cc = $('cc'); D.IBAN.slice().sort(function (a, b) { return a[3] < b[3] ? -1 : 1; }).forEach(function (r) { var o = document.createElement('option'); o.value = r[0]; o.textContent = r[3] + ' (' + r[0] + ')'; cc.appendChild(o); }); cc.value = 'GB';
+  function ok(t) { return '<span class="ok">Valid ' + t + '</span>'; }
+  function bad(t) { return '<span class="no">Not a valid ' + t + '</span>'; }
+  function run() {
+    var v = $('in').value, k = $('kind').value, out = '';
+    if (!v.trim()) { $('res').innerHTML = '<div class="muted">Paste a number.</div>'; }
+    else {
+      if (k === 'auto') k = D.detect(v);
+      if (!k) out = '<span class="no">Could not tell what this is.</span> <span class="muted">Pick a type above.</span>';
+      else if (k === 'iban') { var r = D.ibanCheck(v); out = r.ok ? ok('IBAN') + ' (' + esc(r.country) + ', ' + r.length + ' characters)<div class="big" style="font-family:monospace;font-size:20px;margin-top:6px">' + esc(r.formatted) + '</div>' : bad('IBAN') + '<div class="muted" style="margin-top:4px">' + esc(r.reason) + '</div>'; }
+      else if (k === 'isbn') { var s = D.isbnCheck(v); out = s.ok ? ok(s.kind) + (s.asIsbn13 ? '<div class="muted">As ISBN-13: <span style="font-family:monospace">' + s.asIsbn13 + '</span></div>' : '') + (s.asIsbn10 ? '<div class="muted">As ISBN-10: <span style="font-family:monospace">' + s.asIsbn10 + '</span></div>' : '') : bad('ISBN') + '<div class="muted" style="margin-top:4px">' + esc(s.reason) + '</div>'; }
+      else { var l = D.luhnCheck(v); out = l.ok ? ok('Luhn number') : bad('Luhn number') + '<div class="muted" style="margin-top:4px">' + esc(l.reason) + (l.expected !== undefined ? ' The last digit would need to be ' + l.expected + '.' : '') + '</div>'; }
+      $('res').innerHTML = out;
+    }
+    var m = D.ibanMake(cc.value, $('bban').value), c = D.IBAN.filter(function (r) { return r[0] === cc.value; })[0];
+    $('mk').innerHTML = m.error ? '<div class="muted">' + esc(m.error) + ' Format: ' + c[2] + ' (n digits, a capital letters, c letters or digits).</div>' : 'Check digits <b>' + m.check + '</b>: <span style="font-family:monospace">' + esc(m.formatted) + '</span>';
+    var p = $('pay').value.replace(/[\s-]/g, ''), nine = $('nine').value.replace(/[\s-]/g, ''), t = [];
+    if (/^\d+$/.test(p)) t.push('Luhn check digit for ' + p + ': <b>' + D.luhnDigit(p) + '</b> (' + p + D.luhnDigit(p) + ')'); else t.push('<span class="muted">Luhn payload must be digits.</span>');
+    if (/^\d{9}$/.test(nine)) t.push('ISBN-10 check digit: <b>' + D.isbn10Digit(nine) + '</b>'); else if (/^\d{12}$/.test(nine)) t.push('ISBN-13 check digit: <b>' + D.isbn13Digit(nine) + '</b>'); else t.push('<span class="muted">ISBN part needs 9 or 12 digits.</span>');
+    $('mk2').innerHTML = t.join('<br>');
+  }
+  $('in').oninput = $('bban').oninput = $('pay').oninput = $('nine').oninput = run; $('kind').onchange = cc.onchange = run;
+  [['p1', 'GB82 WEST 1234 5698 7654 32'], ['p2', 'GB82 WEST 1234 5698 7654 33'], ['p3', '0-306-40615-2'], ['p4', '978-3-16-148410-0'], ['p5', '1789 3729 974'], ['p6', '1789 3729 975']].forEach(function (x) { $(x[0]).onclick = function () { $('in').value = x[1]; $('kind').value = 'auto'; run(); }; });
+  run();
+})();
+</script>
+</body>
+</html>
